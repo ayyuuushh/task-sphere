@@ -14,6 +14,7 @@ function ProjectPage() {
   const [loading, setLoading] = useState(true)
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
+
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -21,13 +22,17 @@ function ProjectPage() {
     status: 'todo',
     dueDate: ''
   })
+
   const [selectedUser, setSelectedUser] = useState('')
   const [error, setError] = useState('')
   const [taskError, setTaskError] = useState('')
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const token = localStorage.getItem('token')
-  const authHeader = { headers: { Authorization: `Bearer ${token}` } }
+
+  const authHeader = {
+    headers: { Authorization: `Bearer ${token}` }
+  }
 
   useEffect(() => {
     fetchProjectData()
@@ -63,7 +68,15 @@ function ProjectPage() {
         assignedTo: newTask.assignedTo || null,
         dueDate: newTask.dueDate || null
       }, authHeader)
-      setNewTask({ title: '', description: '', assignedTo: '', status: 'todo', dueDate: '' })
+
+      setNewTask({
+        title: '',
+        description: '',
+        assignedTo: '',
+        status: 'todo',
+        dueDate: ''
+      })
+
       setShowTaskForm(false)
       fetchProjectData()
     } catch (err) {
@@ -71,20 +84,15 @@ function ProjectPage() {
     }
   }
 
-  const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await axios.put(`${BASE_URL}/api/tasks/${taskId}`, { status: newStatus }, authHeader)
-      fetchProjectData()
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update status')
-    }
-  }
-
   const handleAddMember = async (e) => {
     e.preventDefault()
     setError('')
     try {
-      await axios.post(`${BASE_URL}/api/projects/${id}/members`, { userId: selectedUser }, authHeader)
+      await axios.post(
+        `${BASE_URL}/api/projects/${id}/members`,
+        { userId: selectedUser },
+        authHeader
+      )
       setSelectedUser('')
       setShowAddMember(false)
       fetchProjectData()
@@ -93,18 +101,8 @@ function ProjectPage() {
     }
   }
 
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Delete this task?')) return
-    try {
-      await axios.delete(`${BASE_URL}/api/tasks/${taskId}`, authHeader)
-      fetchProjectData()
-    } catch (err) {
-      alert('Failed to delete task')
-    }
-  }
-
-  if (loading) return <div className="loading">Loading project...</div>
-  if (!project) return <div className="loading">Project not found</div>
+  if (loading) return <div>Loading...</div>
+  if (!project) return <div>Project not found</div>
 
   const nonMembers = users.filter(u =>
     !project.members.some(m => m._id === u._id)
@@ -112,16 +110,66 @@ function ProjectPage() {
 
   return (
     <div className="page-container">
+
+      {/* HEADER */}
       <div className="dashboard-header">
         <div>
           <h2>{project.name}</h2>
-          <p className="project-desc">{project.description || 'No description'}</p>
-          <p className="created-by">Created by {project.createdBy?.name}</p>
+          <p>{project.description}</p>
         </div>
+
+        {user.role === 'admin' && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button className="btn-secondary" onClick={() => setShowAddMember(!showAddMember)}>
+              + Add Member
+            </button>
+            <button className="btn-primary" onClick={() => setShowTaskForm(!showTaskForm)}>
+              + Add Task
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* ADD MEMBER */}
+      {showAddMember && (
+        <div className="card">
+          <h3>Add Member</h3>
+          <form onSubmit={handleAddMember}>
+            <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
+              <option value="">Select user</option>
+              {nonMembers.map(u => (
+                <option key={u._id} value={u._id}>{u.name}</option>
+              ))}
+            </select>
+            <button>Add</button>
+          </form>
+        </div>
+      )}
+
+      {/* ADD TASK */}
+      {showTaskForm && (
+        <div className="card">
+          <h3>Create Task</h3>
+          <form onSubmit={handleCreateTask}>
+            <input
+              placeholder="Title"
+              value={newTask.title}
+              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              required
+            />
+            <textarea
+              placeholder="Description"
+              value={newTask.description}
+              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+            />
+            <button>Create Task</button>
+          </form>
+        </div>
+      )}
+
+      {/* TASK LIST */}
       <div className="card">
-        <h3 className="section-title">Tasks ({tasks.length})</h3>
+        <h3>Tasks</h3>
         {tasks.length === 0 ? (
           <p>No tasks yet</p>
         ) : (
@@ -132,6 +180,7 @@ function ProjectPage() {
           ))
         )}
       </div>
+
     </div>
   )
 }
