@@ -20,6 +20,7 @@ function Dashboard() {
               Authorization: `Bearer ${localStorage.getItem('token')}`
             }
           }),
+
           axios.get(`${BASE_URL}/api/projects`, {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -47,6 +48,7 @@ function Dashboard() {
 
       <h1>Good to see you, {user?.name}! 👋</h1>
 
+      {/* SEARCH */}
       <input
         type="text"
         placeholder="Search tasks..."
@@ -71,7 +73,49 @@ function Dashboard() {
 
       {/* PROJECTS */}
       <div className="card" style={{ marginTop: '20px' }}>
-        <h2>Your Projects</h2>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <h2>Your Projects</h2>
+
+          {user?.role === 'admin' && (
+            <button
+              className="btn-primary"
+              onClick={async () => {
+                const name = prompt('Enter project name')
+
+                if (!name) return
+
+                try {
+                  await axios.post(
+                    `${BASE_URL}/api/projects`,
+                    {
+                      name,
+                      description: 'New team project'
+                    },
+                    {
+                      headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                      }
+                    }
+                  )
+
+                  window.location.reload()
+
+                } catch (err) {
+                  alert('Failed to create project')
+                }
+              }}
+            >
+              + New Project
+            </button>
+          )}
+        </div>
 
         {projects.length === 0 ? (
           <p>No projects yet</p>
